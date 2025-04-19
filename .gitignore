@@ -1,0 +1,6 @@
+.venv
+uploads/
+*.mp3
+__pycache__
+app.log
+*.log
