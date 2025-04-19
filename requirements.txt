@@ -1,0 +1,13 @@
+# Dev environment
+pip
+autopep8
+numpy
+flask
+scipy
+librosa
+audioread
+soundfile
+matplotlib
+ffmpeg
+pydub
+# App

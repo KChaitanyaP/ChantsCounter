@@ -1,0 +1,76 @@
+body {
+  background-color: black;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: sans-serif;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+h1, h2 {
+  text-align: center;
+  color: white;
+}
+
+button {
+  width: 150px;
+  margin-top: 20px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: #6c63ff; /* Default purple */
+  color: white;
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+button:hover:enabled {
+  background-color: #837eff;
+}
+
+button:active:enabled {
+  transform: scale(0.95);
+  background-color: #5a54e7;
+}
+
+button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+}
+
+#plot-container {
+  border: 1px solid #ccc;
+  margin: 20px;
+  padding: 20px;
+  text-align: center;
+}
+
+#repetitionCounter {
+  font-size: 48px;
+  margin-top: 40px;
+  transition: transform 0.2s ease;
+}
+
+#repetitionCounter.bump {
+  transform: scale(1.4);
+}
+
+#error {
+  color: red;
+  margin-bottom: 20px;
+}
+
+#buttons-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+#buttons-container button {
+  margin: 0 10px;
+}

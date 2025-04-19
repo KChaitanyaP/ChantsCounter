@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Permissions-Policy" content="microphone=()" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Repetition Counter</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body>
+  <h1>Audio Repetition Counter</h1>
+
+  <div id="error"></div>
+
+  <div id="buttons-container">
+    <button id="startButton">Start Recording</button>
+    <button id="stopButton" disabled>Stop Recording</button>
+  </div>
+
+  <div id="repetitionCounter">Repetitions: 0</div>
+</body>
+  <script>
+    let mediaRecorder = null;
+    let stream = null;
+    let chunkInterval = 4000;
+    let folderId = null;
+    let startTime = 0;
+    let recordingTimer = null;
+    let totalRepetitions = 0; 
+  
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+  
+    const startRecording = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const folderResp = await fetch('/create_folder', { method: 'POST' });
+        folderId = (await folderResp.json()).folder_id;
+        startTime = 0;
+  
+        // Start the first chunk immediately
+        startNewChunk();
+  
+        // Repeat every 4 seconds
+        recordingTimer = setInterval(() => {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop(); // this will trigger next chunk
+          }
+        }, chunkInterval);
+  
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      } catch (err) {
+        console.error("Error accessing mic:", err);
+      }
+    };
+  
+    const startNewChunk = () => {
+      const preferredMimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus')
+        ? 'audio/webm; codecs=opus'
+        : 'audio/ogg; codecs=opus';
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType: preferredMimeType });
+
+  
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data && event.data.size > 0) {
+          const blob = new Blob([event.data], { type: preferredMimeType });
+          await uploadChunk(blob, startTime);
+          startTime += 4;
+        }
+      };
+  
+      mediaRecorder.onstop = () => {
+        // After stopping, immediately start new chunk
+        startNewChunk();
+        // mediaRecorder.start();
+      };
+  
+      mediaRecorder.start();
+
+      // Automatically stop after 4 seconds
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+      }, 4000);
+    };
+  
+    const stopRecording = () => {
+      clearInterval(recordingTimer);
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.onstop = null; // prevent auto-restart
+        mediaRecorder.stop();
+      }
+      startButton.disabled = false;
+      stopButton.disabled = true;
+    };
+
+
+    const uploadChunk = async (blob, startSec) => {
+      const endSec = startSec + 4;
+      const formData = new FormData();
+      formData.append('audio', blob, `${startSec}-${endSec}.ogg`);
+      formData.append('chunkStartTime', startSec);
+      formData.append('chunkEndTime', endSec);
+      formData.append('folder_id', folderId);
+
+      try {
+        const res = await fetch('/chunks', { method: 'POST', body: formData });
+        const data = await res.json();
+        console.log('Chunk uploaded:', data);
+
+        if (data.repetitions !== undefined && data.repetitions >= 0) {
+          totalRepetitions += data.repetitions;
+          updateRepetitionCounter();
+        }
+      } catch (err) {
+        console.error('Error uploading chunk:', err);
+      }
+    };
+
+    const updateRepetitionCounter = () => {
+      const counterDiv = document.getElementById('repetitionCounter');
+      counterDiv.textContent = `Repetitions: ${totalRepetitions}`;
+
+      counterDiv.classList.add('bump');
+      setTimeout(() => {
+        counterDiv.classList.remove('bump');
+      }, 200);
+
+    };
+
+  
+    startButton.addEventListener('click', startRecording);
+    stopButton.addEventListener('click', stopRecording);
+  </script>
+  
+</body>
+</html>
